@@ -1,0 +1,75 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+</head>
+<body>
+<H1>Hello World!</H1>
+<h3>Is heater on?</h3>
+<h3>Current temperature:</h3>
+
+<div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script type="text/javascript" src="http://code.highcharts.com/highcharts.js"></script>
+<script th:inline="javascript">
+    var chart; //local
+
+    function requestData() {
+        $.when(
+            $.getJSON("templog.json"),
+            $.getJSON("appliedmodel.json")
+        ).then(function (templog, appliedmodel) {
+            chart.series[0].setData(templog[0]);
+            chart.series[1].setData(appliedmodel[0]);
+            console.log(templog, appliedmodel)
+            setTimeout(requestData, 1000)
+        })
+    }
+
+    $(function () {
+        chart = new Highcharts.chart('container', {
+            chart: {
+                renderTo: 'container',
+                events: {
+                    load: requestData
+                }
+            },
+            title: {
+                text: 'Maisch Temperature Process',
+                x: -20 //center
+            },
+            subtitle: {
+                text: 'Live Progress of the temperature',
+                x: -20
+            },
+            yAxis: {
+                title: {
+                    text: 'Temperature (°C)'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
+            },
+            tooltip: {
+                valueSuffix: '°C'
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'middle',
+                borderWidth: 0
+            },
+            series: [{
+                name: 'Measured Temperature',
+                data: []
+            }, {
+                name: 'Maisch Schema',
+                data: []
+            }]
+        });
+    });
+</script>
+
+</body>
+</html>
