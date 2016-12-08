@@ -1,4 +1,4 @@
-package nl.timnederhoff.experiments;
+package nl.timnederhoff.tools.maischperfect;
 
 import java.util.ArrayList;
 import java.util.List;

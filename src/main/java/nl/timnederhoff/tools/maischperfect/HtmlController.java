@@ -1,4 +1,4 @@
-package nl.timnederhoff.experiments;
+package nl.timnederhoff.tools.maischperfect;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

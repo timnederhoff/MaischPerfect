@@ -1,4 +1,4 @@
-package nl.timnederhoff.experiments;
+package nl.timnederhoff.tools.maischperfect;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

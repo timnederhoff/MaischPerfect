@@ -1,4 +1,4 @@
-package nl.timnederhoff.experiments;
+package nl.timnederhoff.tools.maischperfect;
 
 public class TemperatureRun implements Runnable{
 	private Thread tempThread;

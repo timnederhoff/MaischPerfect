@@ -1,4 +1,4 @@
-package nl.timnederhoff.experiments;
+package nl.timnederhoff.tools.maischperfect;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
