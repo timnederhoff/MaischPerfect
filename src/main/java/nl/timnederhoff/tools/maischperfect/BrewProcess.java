@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BrewProcess implements Runnable {
-	private int[][] maischModel;
-	private List<int[]> appliedModel;
-	private int thresHold = 3;
-	private List<Integer> tempLog;
-	private List<int[]> switchLog;
+	private List<Integer[]> maischModel;
+	private List<Integer[]> appliedModel;
+	private int thresHold = 2;
+	private List<Integer[]> tempLog;
+	private List<Object[]> switchLog;
 	private int counter;
 	private boolean heaterOn;
 	private TemperatureRun temperatureRun;
 
-	public BrewProcess(int[][] maischModel) {
+	public BrewProcess(List<Integer[]> maischModel) {
 		this.maischModel = maischModel;
 		Thread myThread = new Thread(this, "my runnable thread");
 		myThread.start();
@@ -27,43 +27,46 @@ public class BrewProcess implements Runnable {
 		temperatureRun = new TemperatureRun();
 		counter = 0;
 		appliedModel = new ArrayList<>();
-		appliedModel.add(new int[] {counter,temperatureRun.getCurrentTemp()});
-		for (int targetTemp[] : maischModel) {
+		sleep(3000);
+		appliedModel.add(new Integer[] {counter, temperatureRun.getCurrentTemp()});
+		for (Integer[] modelStep : maischModel) {
 			//turn heater on
-			switchHeater(1);
-			while (temperatureRun.getCurrentTemp() < targetTemp[1]) {
-				tempLog.add(temperatureRun.getCurrentTemp());
+			switchHeater(true);
+			while (temperatureRun.getCurrentTemp() < modelStep[0]) {
+				tempLog.add(new Integer[] {counter, temperatureRun.getCurrentTemp()});
 				counter++;
 				sleep(500); //and keep warming
 			}
 			//turn heater off
-			switchHeater(0);
-			appliedModel.add(new int[] {tempLog.size(), targetTemp[1]});
-			appliedModel.add(new int[] {tempLog.size()+targetTemp[0], targetTemp[1]});
-			for (int i = 0; i < targetTemp[0]; i++) {
+			switchHeater(false);
+			appliedModel.add(new Integer[] {tempLog.size(), modelStep[0]});
+			appliedModel.add(new Integer[] {tempLog.size() + modelStep[1], modelStep[0]});
+			for (int i = 0; i < modelStep[1]; i++) {
 				int currentTemp = temperatureRun.getCurrentTemp();
-				tempLog.add(currentTemp);
-				if (currentTemp < targetTemp[1] - thresHold) {
+				tempLog.add(new Integer[] {counter, currentTemp});
+
+				if (currentTemp < modelStep[0] - thresHold) {
 					//turn heater on
-					switchHeater(1);
-				} else if (currentTemp > targetTemp[1] + thresHold) {
+					switchHeater(true);
+				} else if (currentTemp > modelStep[0] + thresHold) {
 					//turn heater off
-					switchHeater(0);
+					switchHeater(false);
 				}
+				counter++;
 				sleep(500);
 			}
 		}
 	}
 
-	public List<Integer> getTempLog() {
+	public List<Integer[]> getTempLog() {
 		return tempLog;
 	}
 
-	public List<int[]> getAppliedModel() {
+	public List<Integer[]> getAppliedModel() {
 		return appliedModel;
 	}
 
-	public List<int[]> getSwitchLog() {
+	public List<Object[]> getSwitchLog() {
 		return switchLog;
 	}
 
@@ -75,14 +78,6 @@ public class BrewProcess implements Runnable {
 		return heaterOn;
 	}
 
-	@Override
-	public String toString() {
-		return "BrewProcess{" +
-				"tempLog=" + tempLog +
-				", switchLog=" + switchLog +
-				'}';
-	}
-
 	private void sleep(int milliseonds) {
 		try {
 			Thread.sleep(milliseonds);
@@ -92,10 +87,11 @@ public class BrewProcess implements Runnable {
 		}
 	}
 
-	private void switchHeater(int enable) {
-		if (enable == 0) heaterOn = false;
-		if (enable == 1) heaterOn = true;
-		switchLog.add(new int[]{counter, enable});
+	private void switchHeater(boolean enable) {
+		if (heaterOn != enable) {
+			heaterOn = enable;
+			switchLog.add(new Object[] {counter, enable});
+		}
 	}
 
 }

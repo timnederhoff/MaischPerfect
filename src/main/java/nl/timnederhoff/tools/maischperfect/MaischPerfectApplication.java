@@ -1,31 +1,37 @@
 package nl.timnederhoff.tools.maischperfect;
 
+import nl.timnederhoff.tools.maischperfect.model.TempRequest;
+import nl.timnederhoff.tools.maischperfect.model.TempResponse;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.stereotype.Controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@RestController
+@Controller
 @SpringBootApplication
 public class MaischPerfectApplication {
 
-	private static int[][] maischModel = new int[][] {{12,30}, {9,45}, {10,51}, {11,60}};
+	private static List<Integer[]> maischModel = new ArrayList<>();
+
 	private static BrewProcess brewProcess;
 
 	public static void main(String[] args) {
+		maischModel.add(new Integer[] {30,12});
+		maischModel.add(new Integer[] {45,9});
+		maischModel.add(new Integer[] {51,10});
+		maischModel.add(new Integer[] {60,11});
 		brewProcess = new BrewProcess(maischModel);
 		SpringApplication.run(MaischPerfectApplication.class, args);
 	}
 
-	@RequestMapping("/templog")
-	private List<Integer> getTempLog() {
-		return brewProcess.getTempLog();
+	@MessageMapping("/templog")
+	@SendTo("/topic/temps")
+	public TempResponse getTempLog(TempRequest tempRequest) {
+		return new TempResponse(brewProcess.getTempLog(), brewProcess.getAppliedModel(), brewProcess.getSwitchLog());
 	}
 
-	@RequestMapping("/appliedmodel")
-	private List<int[]> getAppliedModel() {
-		return brewProcess.getAppliedModel();
-	}
 }
