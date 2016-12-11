@@ -39,8 +39,8 @@ public class BrewProcess implements Runnable {
 			}
 			//turn heater off
 			switchHeater(false);
-			appliedModel.add(new Integer[] {tempLog.size(), modelStep[0]});
-			appliedModel.add(new Integer[] {tempLog.size() + modelStep[1], modelStep[0]});
+			appliedModel.add(new Integer[] {counter, modelStep[0]});
+			appliedModel.add(new Integer[] {counter + modelStep[1], modelStep[0]});
 			for (int i = 0; i < modelStep[1]; i++) {
 				int currentTemp = temperatureRun.getCurrentTemp();
 				tempLog.add(new Integer[] {counter, currentTemp});
@@ -71,7 +71,6 @@ public class BrewProcess implements Runnable {
 	}
 
 	public List<Integer[]> getTempLog(int fromPoint) {
-		System.out.println("lemplog from point: " + fromPoint);
 		for (int i = 0; i < tempLog.size(); i++) {
 			if (tempLog.get(i)[0] > fromPoint) {
 				return tempLog.subList(i , tempLog.size());
