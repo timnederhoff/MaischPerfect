@@ -62,12 +62,40 @@ public class BrewProcess implements Runnable {
 		return tempLog;
 	}
 
+	public List<Integer[]> getTempLog(int fromPoint) {
+		System.out.println("lemplog from point: " + fromPoint);
+		for (int i = 0; i < tempLog.size(); i++) {
+			if (tempLog.get(i)[0] > fromPoint) {
+				return tempLog.subList(i , tempLog.size());
+			}
+		}
+		return new ArrayList<>();
+	}
+
 	public List<Integer[]> getAppliedModel() {
 		return appliedModel;
 	}
 
+	public List<Integer[]> getAppliedModel(int fromPoint) {
+		for (int i =0; i < appliedModel.size(); i++) {
+			if (appliedModel.get(i)[0] > fromPoint) {
+				return appliedModel.subList(i, appliedModel.size());
+			}
+		}
+		return new ArrayList<>();
+	}
+
 	public List<Object[]> getSwitchLog() {
 		return switchLog;
+	}
+
+	public List<Object[]> getSwitchLog(int fromPoint) {
+		for (int i = 0; i < switchLog.size(); i++) {
+			if ((Integer) switchLog.get(i)[0] > fromPoint) {
+				return switchLog.subList(i, switchLog.size());
+			}
+		}
+		return new ArrayList<>();
 	}
 
 	public int getCurrentTemperature() {

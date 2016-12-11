@@ -31,7 +31,13 @@ public class MaischPerfectApplication {
 	@MessageMapping("/templog")
 	@SendTo("/topic/temps")
 	public TempResponse getTempLog(TempRequest tempRequest) {
-		return new TempResponse(brewProcess.getTempLog(), brewProcess.getAppliedModel(), brewProcess.getSwitchLog());
+
+		return new TempResponse(
+				brewProcess.getTempLog(tempRequest.getFromPointTemp()),
+				brewProcess.getAppliedModel(tempRequest.getFromPointMaisch()),
+				brewProcess.getSwitchLog(tempRequest.getFromPointHeater())
+		);
+
 	}
 
 }
