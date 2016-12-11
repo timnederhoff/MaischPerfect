@@ -18,7 +18,10 @@ function connect() {
     stompClient.connect({}, function (frame) {
         setConnected(true);
         console.log('Connected: ' + frame);
-        stompClient.subscribe('/topic/temps', function (temps) {
+        var currentTemperatureSubscription = stompClient.subscribe('/topic/livedata', function (currentTemp) {
+            tempchart.series[0].points[0].update(parseInt(currentTemp.body));
+        });
+        var processSubscription = stompClient.subscribe('/topic/temps', function (temps) {
             var templogs = JSON.parse(temps.body).templog;
             var maischmodel = JSON.parse(temps.body).maischmodel;
             var heaterlog = JSON.parse(temps.body).heaterlog;
@@ -71,11 +74,11 @@ function requestData() {
     setTimeout(function () {
         var frompointTemptmp = Math.max.apply(Math,chart.series[0].data.map(function(o){return o.x;}));
         var frompointMaischtmp = Math.max.apply(Math,chart.series[1].data.map(function(o){return o.x;}));
-        var frompointHeater = -1;
+        var frompointHeater = Math.max.apply(Math,chart.xAxis[0].plotLinesAndBands.map(function(o){return o.options.value}));
         stompClient.send("/app/templog", {}, JSON.stringify({
             "fromPointTemp": frompointTemptmp > 0 ? frompointTemptmp : -1,
             "fromPointMaisch": frompointMaischtmp > 0 ? frompointMaischtmp : -1,
-            "fromPointHeater": frompointHeater
+            "fromPointHeater": frompointHeater > 0 ? frompointHeater : -1
         }));
         requestData();
     }, 500);
@@ -133,4 +136,101 @@ $(function () {
             data: []
         }]
     });
+});
+
+$(function () {
+    tempchart = new Highcharts.chart('tempgauge', {
+
+        chart: {
+            type: 'gauge',
+            plotBackgroundColor: null,
+            plotBackgroundImage: null,
+            plotBorderWidth: 0,
+            plotShadow: false
+        },
+
+        title: {
+            text: 'Current Temperature'
+        },
+
+        pane: {
+            startAngle: -150,
+            endAngle: 150,
+            background: [{
+                backgroundColor: {
+                    linearGradient: {x1: 0, y1: 0, x2: 0, y2: 1},
+                    stops: [
+                        [0, '#FFF'],
+                        [1, '#333']
+                    ]
+                },
+                borderWidth: 0,
+                outerRadius: '109%'
+            }, {
+                backgroundColor: {
+                    linearGradient: {x1: 0, y1: 0, x2: 0, y2: 1},
+                    stops: [
+                        [0, '#333'],
+                        [1, '#FFF']
+                    ]
+                },
+                borderWidth: 1,
+                outerRadius: '107%'
+            }, {
+                // default background
+            }, {
+                backgroundColor: '#DDD',
+                borderWidth: 0,
+                outerRadius: '105%',
+                innerRadius: '103%'
+            }]
+        },
+
+        // the value axis
+        yAxis: {
+            min: 0,
+            max: 120,
+
+            minorTickInterval: 'auto',
+            minorTickWidth: 1,
+            minorTickLength: 10,
+            minorTickPosition: 'inside',
+            minorTickColor: '#666',
+
+            tickPixelInterval: 30,
+            tickWidth: 2,
+            tickPosition: 'inside',
+            tickLength: 10,
+            tickColor: '#666',
+            labels: {
+                step: 2,
+                rotation: 'auto'
+            },
+            title: {
+                text: '°C'
+            },
+            plotBands: [{
+                from: 0,
+                to: 40,
+                color: '#55BF3B' // green
+            }, {
+                from: 40,
+                to: 80,
+                color: '#DDDF0D' // yellow
+            }, {
+                from: 80,
+                to: 120,
+                color: '#DF5353' // red
+            }]
+        },
+
+        series: [{
+            name: 'temperature',
+            data: [70],
+            tooltip: {
+                valueSuffix: ' °C'
+            }
+        }]
+    });
+
 });
