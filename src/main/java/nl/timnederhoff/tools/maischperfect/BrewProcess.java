@@ -12,11 +12,11 @@ public class BrewProcess implements Runnable {
 	private int counter;
 	private boolean heaterOn;
 	private TemperatureRun temperatureRun;
+	private Thread brewProcessThread;
 
 	public BrewProcess(List<Integer[]> maischModel) {
 		this.maischModel = maischModel;
-		Thread myThread = new Thread(this, "my runnable thread");
-		myThread.start();
+		brewProcessThread = new Thread(this, "my runnable thread");
 	}
 
 	@Override
@@ -56,6 +56,14 @@ public class BrewProcess implements Runnable {
 				sleep(500);
 			}
 		}
+	}
+
+	public void start() {
+		brewProcessThread.start();
+	}
+
+	public boolean isEnded() {
+		return brewProcessThread.getState() == Thread.State.TERMINATED;
 	}
 
 	public List<Integer[]> getTempLog() {
@@ -99,6 +107,9 @@ public class BrewProcess implements Runnable {
 	}
 
 	public int getCurrentTemperature() {
+		if (null == temperatureRun) {
+			return 0;
+		}
 		return temperatureRun.getCurrentTemp();
 	}
 

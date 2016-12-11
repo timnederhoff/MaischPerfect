@@ -11,13 +11,16 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-@SpringBootApplication
+@RestController
 @EnableScheduling
+@SpringBootApplication
 public class MaischPerfectApplication {
 
 	private static List<Integer[]> maischModel = new ArrayList<>();
@@ -43,7 +46,8 @@ public class MaischPerfectApplication {
 		return new TempResponse(
 				brewProcess.getTempLog(tempRequest.getFromPointTemp()),
 				brewProcess.getAppliedModel(tempRequest.getFromPointMaisch()),
-				brewProcess.getSwitchLog(tempRequest.getFromPointHeater())
+				brewProcess.getSwitchLog(tempRequest.getFromPointHeater()),
+				brewProcess.isEnded()
 		);
 
 	}
@@ -51,6 +55,12 @@ public class MaischPerfectApplication {
 	@Scheduled(fixedRate = 1000)
 	public void broadcastTemperature() {
 		this.brokerMessagingTemplate.convertAndSend("/topic/livedata", Integer.toString(brewProcess.getCurrentTemperature()));
+	}
+
+	@RequestMapping("/start")
+	public void startProcess(){
+		brewProcess.start();
+		System.out.println("brewprocess has started");
 	}
 
 }

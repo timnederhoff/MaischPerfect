@@ -7,14 +7,16 @@ public class TempResponse {
 	private List<Integer[]> templog;
 	private List<Integer[]> maischmodel;
 	private List<Object[]> heaterlog;
+	private boolean isEnded;
 
 	public TempResponse() {
 	}
 
-	public TempResponse(List<Integer[]> templog, List<Integer[]> maischmodel, List<Object[]> heaterlog) {
+	public TempResponse(List<Integer[]> templog, List<Integer[]> maischmodel, List<Object[]> heaterlog, boolean isEnded) {
 		this.templog = templog;
 		this.maischmodel = maischmodel;
 		this.heaterlog = heaterlog;
+		this.isEnded = isEnded;
 	}
 
 	public List<Integer[]> getTemplog() {
@@ -27,5 +29,9 @@ public class TempResponse {
 
 	public List<Object[]> getHeaterlog() {
 		return heaterlog;
+	}
+
+	public boolean isEnded() {
+		return isEnded;
 	}
 }

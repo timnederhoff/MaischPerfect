@@ -18,7 +18,7 @@ function connect() {
     stompClient.connect({}, function (frame) {
         setConnected(true);
         console.log('Connected: ' + frame);
-        var currentTemperatureSubscription = stompClient.subscribe('/topic/livedata', function (currentTemp) {
+        var liveDataSubscription = stompClient.subscribe('/topic/livedata', function (currentTemp) {
             tempchart.series[0].points[0].update(parseInt(currentTemp.body));
         });
         var processSubscription = stompClient.subscribe('/topic/temps', function (temps) {
@@ -44,11 +44,27 @@ function connect() {
             }
 
             chart.redraw();
+
+            setTimeout(function () {
+                if (!JSON.parse(temps.body).ended) {
+                    requestData()
+                }
+            }, 500);
+
         });
 
     });
+}
 
-    requestData();
+function requestData() {
+    var frompointTemptmp = Math.max.apply(Math,chart.series[0].data.map(function(o){return o.x;}));
+    var frompointMaischtmp = Math.max.apply(Math,chart.series[1].data.map(function(o){return o.x;}));
+    var frompointHeater = Math.max.apply(Math,chart.xAxis[0].plotLinesAndBands.map(function(o){return o.options.value}));
+    stompClient.send("/app/templog", {}, JSON.stringify({
+        "fromPointTemp": frompointTemptmp > 0 ? frompointTemptmp : -1,
+        "fromPointMaisch": frompointMaischtmp > 0 ? frompointMaischtmp : -1,
+        "fromPointHeater": frompointHeater > 0 ? frompointHeater : -1
+    }));
 }
 
 function updateSeries(seriesIndex, seriesContent) {
@@ -69,20 +85,10 @@ function disconnect() {
     console.log("Disconnected");
 }
 
-function requestData() {
-
-    setTimeout(function () {
-        var frompointTemptmp = Math.max.apply(Math,chart.series[0].data.map(function(o){return o.x;}));
-        var frompointMaischtmp = Math.max.apply(Math,chart.series[1].data.map(function(o){return o.x;}));
-        var frompointHeater = Math.max.apply(Math,chart.xAxis[0].plotLinesAndBands.map(function(o){return o.options.value}));
-        stompClient.send("/app/templog", {}, JSON.stringify({
-            "fromPointTemp": frompointTemptmp > 0 ? frompointTemptmp : -1,
-            "fromPointMaisch": frompointMaischtmp > 0 ? frompointMaischtmp : -1,
-            "fromPointHeater": frompointHeater > 0 ? frompointHeater : -1
-        }));
-        requestData();
-    }, 500);
-
+function startProcess() {
+    $.get( "start", function( data ) {
+        console.log("brew prcess started");
+    });
 }
 
 $(function () {
@@ -91,7 +97,10 @@ $(function () {
     });
     $( "#connect" ).click(function() { connect(); });
     $( "#disconnect" ).click(function() { disconnect(); });
-    $( "#send" ).click(function() { requestData(); });
+    $( "#start" ).click(function () {
+        startProcess();
+        requestData();
+    })
 });
 
 
