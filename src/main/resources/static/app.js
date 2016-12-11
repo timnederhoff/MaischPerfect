@@ -1,22 +1,13 @@
 var stompClient = null;
 
-function setConnected(connected) {
-    $("#connect").prop("disabled", connected);
-    $("#disconnect").prop("disabled", !connected);
-    if (connected) {
-        $("#conversation").show();
-    }
-    else {
-        $("#conversation").hide();
-    }
-    $("#greetings").html("");
-}
+$( document ).ready(function() {
+    connect();
+});
 
 function connect() {
     var socket = new SockJS('/maisch-perfect-websocket');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
-        setConnected(true);
         console.log('Connected: ' + frame);
         var liveDataSubscription = stompClient.subscribe('/topic/livedata', function (currentTemp) {
             tempchart.series[0].points[0].update(parseInt(currentTemp.body));
@@ -77,14 +68,6 @@ function updateSeries(seriesIndex, seriesContent) {
     }
 }
 
-function disconnect() {
-    if (stompClient != null) {
-        stompClient.disconnect();
-    }
-    setConnected(false);
-    console.log("Disconnected");
-}
-
 function startProcess() {
     $.get( "start", function( data ) {
         console.log("brew prcess started");
@@ -95,8 +78,6 @@ $(function () {
     $("form").on('submit', function (e) {
         e.preventDefault();
     });
-    $( "#connect" ).click(function() { connect(); });
-    $( "#disconnect" ).click(function() { disconnect(); });
     $( "#start" ).click(function () {
         startProcess();
         requestData();
@@ -235,7 +216,7 @@ $(function () {
 
         series: [{
             name: 'temperature',
-            data: [70],
+            data: [0],
             tooltip: {
                 valueSuffix: ' °C'
             }
