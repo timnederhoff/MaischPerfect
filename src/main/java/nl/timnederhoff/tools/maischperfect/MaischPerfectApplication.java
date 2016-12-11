@@ -2,6 +2,7 @@ package nl.timnederhoff.tools.maischperfect;
 
 import nl.timnederhoff.tools.maischperfect.model.TempRequest;
 import nl.timnederhoff.tools.maischperfect.model.TempResponse;
+import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,10 +32,11 @@ public class MaischPerfectApplication {
 	private SimpMessagingTemplate brokerMessagingTemplate;
 
 	public static void main(String[] args) {
-		maischModel.add(new Integer[] {30,12});
-		maischModel.add(new Integer[] {45,9});
-		maischModel.add(new Integer[] {51,10});
-		maischModel.add(new Integer[] {60,11});
+		maischModel.add(new Integer[] {40,5});
+		maischModel.add(new Integer[] {53,20});
+		maischModel.add(new Integer[] {65,20});
+		maischModel.add(new Integer[] {78,1});
+		maischModel.add(new Integer[] {100,60});
 		brewProcess = new BrewProcess(maischModel);
 		SpringApplication.run(MaischPerfectApplication.class, args);
 	}
@@ -58,9 +60,10 @@ public class MaischPerfectApplication {
 	}
 
 	@RequestMapping("/start")
-	public void startProcess(){
+	public void startProcess() {
 		brewProcess.start();
 		System.out.println("brewprocess has started");
 	}
+
 
 }

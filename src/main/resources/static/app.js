@@ -2,6 +2,7 @@ var stompClient = null;
 
 $( document ).ready(function() {
     connect();
+    //here: check if a process is already started
 });
 
 function connect() {
@@ -14,24 +15,14 @@ function connect() {
         });
         var processSubscription = stompClient.subscribe('/topic/temps', function (temps) {
             var templogs = JSON.parse(temps.body).templog;
-            var maischmodel = JSON.parse(temps.body).maischmodel;
+            var maischmodel = JSON.parse(temps.body).appliedModel;
             var heaterlog = JSON.parse(temps.body).heaterlog;
 
             updateSeries(0, templogs);
             updateSeries(1, maischmodel);
 
             for (var i in heaterlog) {
-                var label = heaterlog[i][1] ? 'Heater ON' : 'Heater OFF';
-                var lineColor = heaterlog[i][1] ? 'red' : 'blue';
-                chart.xAxis[0].addPlotLine({
-                    color: lineColor,
-                    dashStyle: 'solid',
-                    value: heaterlog[i][0],
-                    width: 2,
-                    label: {
-                        text: label
-                    }
-                }, false);
+                chart.xAxis[0].addPlotLine(heaterlog[i], false);
             }
 
             chart.redraw();
@@ -107,7 +98,8 @@ $(function () {
         },
         xAxis: {
             title: 'Time Units',
-            plotLines: []
+            plotLines: [],
+            type: 'datetime'
         },
         tooltip: {
             valueSuffix: '°C'
@@ -173,7 +165,7 @@ $(function () {
                 borderWidth: 0,
                 outerRadius: '105%',
                 innerRadius: '103%'
-            }]
+            }],
         },
 
         // the value axis

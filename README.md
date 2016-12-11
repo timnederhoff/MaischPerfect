@@ -4,7 +4,6 @@ Automated maisch program for beer brewing using Raspberry Pi 3 and DS18B20 senso
 ## TODO's
 * initial maisch schema, and adjust data when applied
 * indicator for slope
-* bind index/timeunits to real datetime
 * controls to stop/pause brewprocess
 * functionality to load, create, edit and store maisch schemas on the fronend
 * logging to frontend

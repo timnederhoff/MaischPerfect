@@ -1,33 +1,36 @@
 package nl.timnederhoff.tools.maischperfect.model;
 
+import nl.timnederhoff.tools.maischperfect.model.highcharts.PlotLine;
+import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
+
 import java.util.List;
 
 public class TempResponse {
 
-	private List<Integer[]> templog;
-	private List<Integer[]> maischmodel;
-	private List<Object[]> heaterlog;
+	private List<Point> templog;
+	private List<Point> appliedModel;
+	private List<PlotLine> heaterlog;
 	private boolean isEnded;
 
 	public TempResponse() {
 	}
 
-	public TempResponse(List<Integer[]> templog, List<Integer[]> maischmodel, List<Object[]> heaterlog, boolean isEnded) {
+	public TempResponse(List<Point> templog, List<Point> appliedModel, List<PlotLine> heaterlog, boolean isEnded) {
 		this.templog = templog;
-		this.maischmodel = maischmodel;
+		this.appliedModel = appliedModel;
 		this.heaterlog = heaterlog;
 		this.isEnded = isEnded;
 	}
 
-	public List<Integer[]> getTemplog() {
+	public List<Point> getTemplog() {
 		return templog;
 	}
 
-	public List<Integer[]> getMaischmodel() {
-		return maischmodel;
+	public List<Point> getAppliedModel() {
+		return appliedModel;
 	}
 
-	public List<Object[]> getHeaterlog() {
+	public List<PlotLine> getHeaterlog() {
 		return heaterlog;
 	}
 

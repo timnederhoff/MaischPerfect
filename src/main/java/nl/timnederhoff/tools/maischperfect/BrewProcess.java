@@ -1,18 +1,25 @@
 package nl.timnederhoff.tools.maischperfect;
 
+import nl.timnederhoff.tools.maischperfect.model.highcharts.Label;
+import nl.timnederhoff.tools.maischperfect.model.highcharts.PlotLine;
+import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BrewProcess implements Runnable {
 	private List<Integer[]> maischModel;
-	private List<Integer[]> appliedModel;
+	private List<Point> appliedModel;
 	private int thresHold = 2;
-	private List<Integer[]> tempLog;
-	private List<Object[]> switchLog;
-	private int counter;
+	private List<Point> tempLog;
+	private List<PlotLine> switchLog;
 	private boolean heaterOn;
 	private TemperatureRun temperatureRun;
 	private Thread brewProcessThread;
+	private Instant startDateTime;
 
 	public BrewProcess(List<Integer[]> maischModel) {
 		this.maischModel = maischModel;
@@ -25,26 +32,27 @@ public class BrewProcess implements Runnable {
 		tempLog = new ArrayList<>();
 		switchLog = new ArrayList<>();
 		temperatureRun = new TemperatureRun();
-		counter = 0;
 		appliedModel = new ArrayList<>();
-		sleep(3000);
-		appliedModel.add(new Integer[] {counter, temperatureRun.getCurrentTemp()});
+		startDateTime = Instant.now();
+		appliedModel.add(new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
 		for (Integer[] modelStep : maischModel) {
 			//turn heater on
 			switchHeater(true);
 			while (temperatureRun.getCurrentTemp() < modelStep[0]) {
-				tempLog.add(new Integer[] {counter, temperatureRun.getCurrentTemp()});
-				counter++;
-				sleep(500); //and keep warming
+				tempLog.add(new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
+				System.out.println("[heating] elapsed time: " + elapsedTime() + ", temp: " + temperatureRun.getCurrentTemp());
+				sleep(500);
 			}
 			//turn heater off
 			switchHeater(false);
-			appliedModel.add(new Integer[] {counter, modelStep[0]});
-			appliedModel.add(new Integer[] {counter + modelStep[1], modelStep[0]});
-			for (int i = 0; i < modelStep[1]; i++) {
-				int currentTemp = temperatureRun.getCurrentTemp();
-				tempLog.add(new Integer[] {counter, currentTemp});
+			appliedModel.add(new Point(elapsedTime().toMillis(), modelStep[0]));
+			appliedModel.add(new Point(elapsedTime().plus(modelStep[1], ChronoUnit.SECONDS).toMillis(), modelStep[0]));
 
+			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.SECONDS);
+			while (Instant.now().isBefore(endTime)) {
+				int currentTemp = temperatureRun.getCurrentTemp();
+				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
+				System.out.println("[waiting] elapsed time: " + elapsedTime() + ", temp: " + temperatureRun.getCurrentTemp());
 				if (currentTemp < modelStep[0] - thresHold) {
 					//turn heater on
 					switchHeater(true);
@@ -52,7 +60,6 @@ public class BrewProcess implements Runnable {
 					//turn heater off
 					switchHeater(false);
 				}
-				counter++;
 				sleep(500);
 			}
 		}
@@ -66,39 +73,39 @@ public class BrewProcess implements Runnable {
 		return brewProcessThread.getState() == Thread.State.TERMINATED;
 	}
 
-	public List<Integer[]> getTempLog() {
+	public List<Point> getTempLog() {
 		return tempLog;
 	}
 
-	public List<Integer[]> getTempLog(int fromPoint) {
+	public List<Point> getTempLog(int fromPoint) {
 		for (int i = 0; i < tempLog.size(); i++) {
-			if (tempLog.get(i)[0] > fromPoint) {
+			if (tempLog.get(i).getX() > fromPoint) {
 				return tempLog.subList(i , tempLog.size());
 			}
 		}
 		return new ArrayList<>();
 	}
 
-	public List<Integer[]> getAppliedModel() {
+	public List<Point> getAppliedModel() {
 		return appliedModel;
 	}
 
-	public List<Integer[]> getAppliedModel(int fromPoint) {
+	public List<Point> getAppliedModel(int fromPoint) {
 		for (int i =0; i < appliedModel.size(); i++) {
-			if (appliedModel.get(i)[0] > fromPoint) {
+			if (appliedModel.get(i).getX() > fromPoint) {
 				return appliedModel.subList(i, appliedModel.size());
 			}
 		}
 		return new ArrayList<>();
 	}
 
-	public List<Object[]> getSwitchLog() {
+	public List<PlotLine> getSwitchLog() {
 		return switchLog;
 	}
 
-	public List<Object[]> getSwitchLog(int fromPoint) {
+	public List<PlotLine> getSwitchLog(int fromPoint) {
 		for (int i = 0; i < switchLog.size(); i++) {
-			if ((Integer) switchLog.get(i)[0] > fromPoint) {
+			if (switchLog.get(i).getValue() > fromPoint) {
 				return switchLog.subList(i, switchLog.size());
 			}
 		}
@@ -128,8 +135,18 @@ public class BrewProcess implements Runnable {
 	private void switchHeater(boolean enable) {
 		if (heaterOn != enable) {
 			heaterOn = enable;
-			switchLog.add(new Object[] {counter, enable});
+			temperatureRun.setHeaterOn(enable);
+			switchLog.add(new PlotLine(
+					enable ? "red" : "blue",
+					"solid",
+					elapsedTime().toMillis(),
+					2,
+					new Label(enable ? "Heater ON" : "Heater OFF")));
 		}
+	}
+
+	private Duration elapsedTime() {
+		return Duration.between(startDateTime, Instant.now());
 	}
 
 }
