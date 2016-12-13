@@ -20,8 +20,10 @@ public class BrewProcess implements Runnable {
 	private TemperatureRun temperatureRun;
 	private Thread brewProcessThread;
 	private Instant startDateTime;
+	private int measureInterval;
 
-	public BrewProcess(List<Integer[]> maischModel) {
+	public BrewProcess(List<Integer[]> maischModel, int measureInterval) {
+		this.measureInterval = measureInterval;
 		this.maischModel = maischModel;
 		brewProcessThread = new Thread(this, "my runnable thread");
 	}
@@ -32,27 +34,27 @@ public class BrewProcess implements Runnable {
 		tempLog = new ArrayList<>();
 		switchLog = new ArrayList<>();
 		temperatureRun = new TemperatureRun();
-		appliedModel = new ArrayList<>();
+		appliedModel = appliedModel(maischModel, 20, 1);
 		startDateTime = Instant.now();
-		appliedModel.add(new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
+		appliedModel.set(0, new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
 		for (Integer[] modelStep : maischModel) {
 			//turn heater on
 			switchHeater(true);
 			while (temperatureRun.getCurrentTemp() < modelStep[0]) {
 				tempLog.add(new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
-				System.out.println("[heating] elapsed time: " + elapsedTime() + ", temp: " + temperatureRun.getCurrentTemp());
-				sleep(500);
+				System.out.println("[heating] elapsed time: " + elapsedTime().toMillis() + ", temp: " + temperatureRun.getCurrentTemp());
+				sleep(measureInterval);
 			}
 			//turn heater off
 			switchHeater(false);
-			appliedModel.add(new Point(elapsedTime().toMillis(), modelStep[0]));
-			appliedModel.add(new Point(elapsedTime().plus(modelStep[1], ChronoUnit.SECONDS).toMillis(), modelStep[0]));
+			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 1, new Point(elapsedTime().toMillis(), modelStep[0]));
+			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 2, new Point(elapsedTime().plus(modelStep[1], ChronoUnit.SECONDS).toMillis(), modelStep[0]));
 
 			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.SECONDS);
 			while (Instant.now().isBefore(endTime)) {
 				int currentTemp = temperatureRun.getCurrentTemp();
 				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
-				System.out.println("[waiting] elapsed time: " + elapsedTime() + ", temp: " + temperatureRun.getCurrentTemp());
+				System.out.println("[waiting] elapsed time: " + elapsedTime().toMillis() + ", temp: " + temperatureRun.getCurrentTemp());
 				if (currentTemp < modelStep[0] - thresHold) {
 					//turn heater on
 					switchHeater(true);
@@ -60,9 +62,10 @@ public class BrewProcess implements Runnable {
 					//turn heater off
 					switchHeater(false);
 				}
-				sleep(500);
+				sleep(measureInterval);
 			}
 		}
+		switchHeater(false);
 	}
 
 	public void start() {
@@ -147,6 +150,21 @@ public class BrewProcess implements Runnable {
 
 	private Duration elapsedTime() {
 		return Duration.between(startDateTime, Instant.now());
+	}
+
+	private List<Point> appliedModel(List<Integer[]> maischModel, int startTemperature, double slope) {
+		long x = 0L;
+		int y = startTemperature;
+		List<Point> appliedModelInit = new ArrayList<>();
+		appliedModelInit.add(new Point(x, startTemperature)); //assuming stortwater is 20 degrees
+		for (Integer[] step : maischModel) {
+			x += (long) ((step[0]-y)/slope) * 1000;
+			y = step[0];
+			appliedModelInit.add(new Point(x, y));
+			x += step[1] * 1000;
+			appliedModelInit.add(new Point(x, y));
+		}
+		return appliedModelInit;
 	}
 
 }

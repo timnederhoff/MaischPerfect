@@ -18,8 +18,8 @@ function connect() {
             var maischmodel = JSON.parse(temps.body).appliedModel;
             var heaterlog = JSON.parse(temps.body).heaterlog;
 
-            updateSeries(0, templogs);
-            updateSeries(1, maischmodel);
+            addToSeries(0, templogs);
+            chart.series[1].setData(maischmodel);
 
             for (var i in heaterlog) {
                 chart.xAxis[0].addPlotLine(heaterlog[i], false);
@@ -40,16 +40,15 @@ function connect() {
 
 function requestData() {
     var frompointTemptmp = Math.max.apply(Math,chart.series[0].data.map(function(o){return o.x;}));
-    var frompointMaischtmp = Math.max.apply(Math,chart.series[1].data.map(function(o){return o.x;}));
     var frompointHeater = Math.max.apply(Math,chart.xAxis[0].plotLinesAndBands.map(function(o){return o.options.value}));
     stompClient.send("/app/templog", {}, JSON.stringify({
         "fromPointTemp": frompointTemptmp > 0 ? frompointTemptmp : -1,
-        "fromPointMaisch": frompointMaischtmp > 0 ? frompointMaischtmp : -1,
+        "fromPointMaisch": -1,
         "fromPointHeater": frompointHeater > 0 ? frompointHeater : -1
     }));
 }
 
-function updateSeries(seriesIndex, seriesContent) {
+function addToSeries(seriesIndex, seriesContent) {
     if (seriesContent.length == 1) {
         chart.series[seriesIndex].addPoint(seriesContent[0], false);
     } else if (seriesContent.length > 1) {

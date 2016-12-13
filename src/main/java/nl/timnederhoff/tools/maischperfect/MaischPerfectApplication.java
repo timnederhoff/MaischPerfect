@@ -37,7 +37,7 @@ public class MaischPerfectApplication {
 		maischModel.add(new Integer[] {65,20});
 		maischModel.add(new Integer[] {78,1});
 		maischModel.add(new Integer[] {100,60});
-		brewProcess = new BrewProcess(maischModel);
+		brewProcess = new BrewProcess(maischModel, 500);
 		SpringApplication.run(MaischPerfectApplication.class, args);
 	}
 
