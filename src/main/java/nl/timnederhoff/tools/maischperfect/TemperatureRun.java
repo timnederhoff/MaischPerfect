@@ -2,7 +2,7 @@ package nl.timnederhoff.tools.maischperfect;
 
 public class TemperatureRun implements Runnable{
 	private Thread tempThread;
-	private int currentTemp;
+	private double currentTemp;
 	private boolean heaterOn;
 
 	public TemperatureRun() {
@@ -16,15 +16,15 @@ public class TemperatureRun implements Runnable{
 	public void run() {
 		while (true) {
 			if (heaterOn) {
-				currentTemp += 2;
+				currentTemp += 1.2 + Math.random() - 0.5;
 			} else {
-				currentTemp -= 1;
+				currentTemp -= 0.8 + Math.random() - 0.5;
 			}
 			sleep(1000);
 		}
 	}
 
-	public int getCurrentTemp() {
+	public double getCurrentTemp() {
 		return currentTemp;
 	}
 

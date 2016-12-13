@@ -5,21 +5,24 @@ import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
 
 import java.util.List;
 
-public class TempResponse {
+public class BrewProcessStatus {
 
 	private List<Point> templog;
 	private List<Point> appliedModel;
 	private List<PlotLine> heaterlog;
 	private boolean isEnded;
+	private double slope;
+	private double temperatureVariance;
 
-	public TempResponse() {
+	public BrewProcessStatus() {
 	}
 
-	public TempResponse(List<Point> templog, List<Point> appliedModel, List<PlotLine> heaterlog, boolean isEnded) {
+	public BrewProcessStatus(List<Point> templog, List<Point> appliedModel, List<PlotLine> heaterlog, boolean isEnded, double slope) {
 		this.templog = templog;
 		this.appliedModel = appliedModel;
 		this.heaterlog = heaterlog;
 		this.isEnded = isEnded;
+		this.slope = slope;
 	}
 
 	public List<Point> getTemplog() {
@@ -36,5 +39,9 @@ public class TempResponse {
 
 	public boolean isEnded() {
 		return isEnded;
+	}
+
+	public double getSlope() {
+		return slope;
 	}
 }

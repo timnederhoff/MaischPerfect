@@ -1,15 +1,15 @@
 package nl.timnederhoff.tools.maischperfect.model;
 
-public class TempRequest {
+public class BrewProcessStatusRequest {
 
 	private Integer fromPointTemp;
 	private Integer fromPointMaisch;
 	private Integer fromPointHeater;
 
-	public TempRequest() {
+	public BrewProcessStatusRequest() {
 	}
 
-	public TempRequest(Integer fromPointTemp, Integer fromPointMaisch, Integer fromPointHeater) {
+	public BrewProcessStatusRequest(Integer fromPointTemp, Integer fromPointMaisch, Integer fromPointHeater) {
 		this.fromPointTemp = fromPointTemp;
 		this.fromPointMaisch = fromPointMaisch;
 		this.fromPointHeater = fromPointHeater;

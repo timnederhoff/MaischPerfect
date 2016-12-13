@@ -21,6 +21,7 @@ public class BrewProcess implements Runnable {
 	private Thread brewProcessThread;
 	private Instant startDateTime;
 	private int measureInterval;
+	private double slope;
 
 	public BrewProcess(List<Integer[]> maischModel, int measureInterval) {
 		this.measureInterval = measureInterval;
@@ -40,9 +41,11 @@ public class BrewProcess implements Runnable {
 		for (Integer[] modelStep : maischModel) {
 			//turn heater on
 			switchHeater(true);
+			double beginTemp = temperatureRun.getCurrentTemp();
+			Instant beginTime = Instant.now();
 			while (temperatureRun.getCurrentTemp() < modelStep[0]) {
 				tempLog.add(new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
-				System.out.println("[heating] elapsed time: " + elapsedTime().toMillis() + ", temp: " + temperatureRun.getCurrentTemp());
+				slope = (temperatureRun.getCurrentTemp() - beginTemp) / (Duration.between(beginTime, Instant.now()).toMillis() / 1000);
 				sleep(measureInterval);
 			}
 			//turn heater off
@@ -52,9 +55,8 @@ public class BrewProcess implements Runnable {
 
 			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.SECONDS);
 			while (Instant.now().isBefore(endTime)) {
-				int currentTemp = temperatureRun.getCurrentTemp();
+				double currentTemp = temperatureRun.getCurrentTemp();
 				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
-				System.out.println("[waiting] elapsed time: " + elapsedTime().toMillis() + ", temp: " + temperatureRun.getCurrentTemp());
 				if (currentTemp < modelStep[0] - thresHold) {
 					//turn heater on
 					switchHeater(true);
@@ -115,7 +117,7 @@ public class BrewProcess implements Runnable {
 		return new ArrayList<>();
 	}
 
-	public int getCurrentTemperature() {
+	public double getCurrentTemperature() {
 		if (null == temperatureRun) {
 			return 0;
 		}
@@ -124,6 +126,10 @@ public class BrewProcess implements Runnable {
 
 	public boolean isHeaterOn() {
 		return heaterOn;
+	}
+
+	public double getSlope() {
+		return slope;
 	}
 
 	private void sleep(int milliseonds) {

@@ -1,8 +1,7 @@
 package nl.timnederhoff.tools.maischperfect;
 
-import nl.timnederhoff.tools.maischperfect.model.TempRequest;
-import nl.timnederhoff.tools.maischperfect.model.TempResponse;
-import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
+import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatusRequest;
+import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -43,20 +42,21 @@ public class MaischPerfectApplication {
 
 	@MessageMapping("/templog")
 	@SendTo("/topic/temps")
-	public TempResponse getTempLog(TempRequest tempRequest) {
+	public BrewProcessStatus getTempLog(BrewProcessStatusRequest brewProcessStatusRequest) {
 
-		return new TempResponse(
-				brewProcess.getTempLog(tempRequest.getFromPointTemp()),
-				brewProcess.getAppliedModel(tempRequest.getFromPointMaisch()),
-				brewProcess.getSwitchLog(tempRequest.getFromPointHeater()),
-				brewProcess.isEnded()
+		return new BrewProcessStatus(
+				brewProcess.getTempLog(brewProcessStatusRequest.getFromPointTemp()),
+				brewProcess.getAppliedModel(brewProcessStatusRequest.getFromPointMaisch()),
+				brewProcess.getSwitchLog(brewProcessStatusRequest.getFromPointHeater()),
+				brewProcess.isEnded(),
+				brewProcess.getSlope()
 		);
 
 	}
 
 	@Scheduled(fixedRate = 1000)
 	public void broadcastTemperature() {
-		this.brokerMessagingTemplate.convertAndSend("/topic/livedata", Integer.toString(brewProcess.getCurrentTemperature()));
+		this.brokerMessagingTemplate.convertAndSend("/topic/livedata", Double.toString(brewProcess.getCurrentTemperature()));
 	}
 
 	@RequestMapping("/start")

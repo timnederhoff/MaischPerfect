@@ -18,6 +18,8 @@ function connect() {
             var maischmodel = JSON.parse(temps.body).appliedModel;
             var heaterlog = JSON.parse(temps.body).heaterlog;
 
+            $( "#slope" ).text(parseFloat(JSON.parse(temps.body).slope).toFixed(2));
+
             addToSeries(0, templogs);
             chart.series[1].setData(maischmodel);
 
