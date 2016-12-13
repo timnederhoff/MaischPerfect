@@ -3,7 +3,7 @@ Automated maisch program for beer brewing using Raspberry Pi 3 and DS18B20 senso
 
 ## Features
 * maisch schema in graph, dynamically match the temperature run
-* live temperature in temperature gauge
+* live temperature in gauge
 
 ## TODO's
 * initial maisch schema, and adjust data when applied
