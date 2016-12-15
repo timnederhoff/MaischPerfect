@@ -1,5 +1,6 @@
 package nl.timnederhoff.tools.maischperfect;
 
+import com.pi4j.io.gpio.*;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.Label;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.PlotLine;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
@@ -16,16 +17,23 @@ public class BrewProcess implements Runnable {
 	private int thresHold = 2;
 	private List<Point> tempLog;
 	private List<PlotLine> switchLog;
-	private boolean heaterOn;
 	private TemperatureRun temperatureRun;
 	private Thread brewProcessThread;
 	private Instant startDateTime;
 	private int measureInterval;
 	private double slope;
 
+	private GpioPinDigitalOutput heaterSwitch;
+
 	public BrewProcess(List<Integer[]> maischModel, int measureInterval) {
 		this.measureInterval = measureInterval;
 		this.maischModel = maischModel;
+		GpioController gpio = GpioFactory.getInstance();
+
+		heaterSwitch = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_25,   // PIN NUMBER
+				"My LED",           // PIN FRIENDLY NAME (optional)
+				PinState.LOW);      // PIN STARTUP STATE (optional)
+
 		brewProcessThread = new Thread(this, "my runnable thread");
 	}
 
@@ -125,7 +133,7 @@ public class BrewProcess implements Runnable {
 	}
 
 	public boolean isHeaterOn() {
-		return heaterOn;
+		return heaterSwitch.isHigh();
 	}
 
 	public double getSlope() {
@@ -142,16 +150,23 @@ public class BrewProcess implements Runnable {
 	}
 
 	private void switchHeater(boolean enable) {
-		if (heaterOn != enable) {
-			heaterOn = enable;
-			temperatureRun.setHeaterOn(enable);
-			switchLog.add(new PlotLine(
-					enable ? "red" : "blue",
-					"solid",
-					elapsedTime().toMillis(),
-					2,
-					new Label(enable ? "Heater ON" : "Heater OFF")));
+		temperatureRun.setHeaterOn(enable);
+		if (heaterSwitch.isLow() && enable) {
+			heaterSwitch.high();
+			addToSwitchLog(enable);
+		} else if (heaterSwitch.isHigh() && !enable) {
+			heaterSwitch.low();
+			addToSwitchLog(enable);
 		}
+	}
+
+	private void addToSwitchLog(boolean enable) {
+		switchLog.add(new PlotLine(
+				enable ? "red" : "blue",
+				"solid",
+				elapsedTime().toMillis(),
+				2,
+				new Label(enable ? "Heater ON" : "Heater OFF")));
 	}
 
 	private Duration elapsedTime() {
