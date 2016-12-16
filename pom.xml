@@ -26,9 +26,16 @@
 
 	<dependencies>
 
+		<!--pi4j-->
 		<dependency>
 			<groupId>com.pi4j</groupId>
 			<artifactId>pi4j-core</artifactId>
+			<version>1.1</version>
+		</dependency>
+		<!-- used for the TemperatureSensor interface -->
+		<dependency>
+			<groupId>com.pi4j</groupId>
+			<artifactId>pi4j-device</artifactId>
 			<version>1.1</version>
 		</dependency>
 

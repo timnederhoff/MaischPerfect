@@ -1,7 +1,7 @@
 package nl.timnederhoff.tools.maischperfect;
 
-import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatusRequest;
 import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatus;
+import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatusRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,12 +31,12 @@ public class MaischPerfectApplication {
 	private SimpMessagingTemplate brokerMessagingTemplate;
 
 	public static void main(String[] args) {
-		maischModel.add(new Integer[] {40,5});
-		maischModel.add(new Integer[] {53,20});
-		maischModel.add(new Integer[] {65,20});
-		maischModel.add(new Integer[] {78,1});
-		maischModel.add(new Integer[] {100,60});
-		brewProcess = new BrewProcess(maischModel, 500);
+		maischModel.add(new Integer[] {25,1});
+		maischModel.add(new Integer[] {29,2});
+		maischModel.add(new Integer[] {32,1});
+		maischModel.add(new Integer[] {35,2});
+		maischModel.add(new Integer[] {50,2});
+		brewProcess = new BrewProcess(maischModel, 4000, 1);
 		SpringApplication.run(MaischPerfectApplication.class, args);
 	}
 
@@ -49,12 +49,13 @@ public class MaischPerfectApplication {
 				brewProcess.getAppliedModel(brewProcessStatusRequest.getFromPointMaisch()),
 				brewProcess.getSwitchLog(brewProcessStatusRequest.getFromPointHeater()),
 				brewProcess.isEnded(),
+				//TODO: find out why slope is always 0.0 over websocket
 				brewProcess.getSlope()
 		);
 
 	}
 
-	@Scheduled(fixedRate = 1000)
+	@Scheduled(fixedRate = 1500)
 	public void broadcastTemperature() {
 		this.brokerMessagingTemplate.convertAndSend("/topic/livedata", Double.toString(brewProcess.getCurrentTemperature()));
 	}

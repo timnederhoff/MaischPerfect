@@ -18,10 +18,10 @@ function connect() {
             var maischmodel = JSON.parse(temps.body).appliedModel;
             var heaterlog = JSON.parse(temps.body).heaterlog;
 
-            $( "#slope" ).text(parseFloat(JSON.parse(temps.body).slope).toFixed(2));
+            $( "#slope" ).text(JSON.parse(temps.body).slope);
 
-            addToSeries(0, templogs);
-            chart.series[1].setData(maischmodel);
+            addToSeries(1, templogs);
+            chart.series[0].setData(maischmodel);
 
             for (var i in heaterlog) {
                 chart.xAxis[0].addPlotLine(heaterlog[i], false);
@@ -33,7 +33,7 @@ function connect() {
                 if (!JSON.parse(temps.body).ended) {
                     requestData()
                 }
-            }, 500);
+            }, 1500);
 
         });
 
@@ -41,7 +41,7 @@ function connect() {
 }
 
 function requestData() {
-    var frompointTemptmp = Math.max.apply(Math,chart.series[0].data.map(function(o){return o.x;}));
+    var frompointTemptmp = Math.max.apply(Math,chart.series[1].data.map(function(o){return o.x;}));
     var frompointHeater = Math.max.apply(Math,chart.xAxis[0].plotLinesAndBands.map(function(o){return o.options.value}));
     stompClient.send("/app/templog", {}, JSON.stringify({
         "fromPointTemp": frompointTemptmp > 0 ? frompointTemptmp : -1,
@@ -112,10 +112,10 @@ $(function () {
             borderWidth: 0
         },
         series: [{
-            name: 'Measured Temperature',
+            name: 'Maisch Schema',
             data: []
         },{
-            name: 'Maisch Schema',
+            name: 'Measured Temperature',
             data: []
         }]
     });

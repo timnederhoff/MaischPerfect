@@ -1,6 +1,9 @@
 package nl.timnederhoff.tools.maischperfect;
 
+import com.pi4j.component.temperature.TemperatureSensor;
+import com.pi4j.component.temperature.impl.TmpDS18B20DeviceType;
 import com.pi4j.io.gpio.*;
+import com.pi4j.io.w1.W1Master;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.Label;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.PlotLine;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
@@ -14,25 +17,30 @@ import java.util.List;
 public class BrewProcess implements Runnable {
 	private List<Integer[]> maischModel;
 	private List<Point> appliedModel;
-	private int thresHold = 2;
+	private double threshold;
 	private List<Point> tempLog;
 	private List<PlotLine> switchLog;
-	private TemperatureRun temperatureRun;
 	private Thread brewProcessThread;
 	private Instant startDateTime;
 	private int measureInterval;
 	private double slope;
+	private double currentTemp;
 
 	private GpioPinDigitalOutput heaterSwitch;
+	private TemperatureSensor tempSensor;
 
-	public BrewProcess(List<Integer[]> maischModel, int measureInterval) {
+	public BrewProcess(List<Integer[]> maischModel, int measureInterval, double threshold) {
 		this.measureInterval = measureInterval;
 		this.maischModel = maischModel;
+		this.threshold = threshold;
 		GpioController gpio = GpioFactory.getInstance();
 
 		heaterSwitch = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_25,   // PIN NUMBER
-				"My LED",           // PIN FRIENDLY NAME (optional)
+				"Heater Switch",           // PIN FRIENDLY NAME (optional)
 				PinState.LOW);      // PIN STARTUP STATE (optional)
+
+		W1Master master = new W1Master();
+		tempSensor = (TemperatureSensor) master.getDevices(TmpDS18B20DeviceType.FAMILY_CODE).get(0);
 
 		brewProcessThread = new Thread(this, "my runnable thread");
 	}
@@ -42,33 +50,33 @@ public class BrewProcess implements Runnable {
 		System.out.println("Process started...");
 		tempLog = new ArrayList<>();
 		switchLog = new ArrayList<>();
-		temperatureRun = new TemperatureRun();
 		appliedModel = appliedModel(maischModel, 20, 1);
 		startDateTime = Instant.now();
-		appliedModel.set(0, new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
+		currentTemp = 23.0;
+		appliedModel.set(0, new Point(elapsedTime().toMillis(), currentTemp));
 		for (Integer[] modelStep : maischModel) {
 			//turn heater on
 			switchHeater(true);
-			double beginTemp = temperatureRun.getCurrentTemp();
+			double beginTemp = currentTemp;
 			Instant beginTime = Instant.now();
-			while (temperatureRun.getCurrentTemp() < modelStep[0]) {
-				tempLog.add(new Point(elapsedTime().toMillis(), temperatureRun.getCurrentTemp()));
-				slope = (temperatureRun.getCurrentTemp() - beginTemp) / (Duration.between(beginTime, Instant.now()).toMillis() / 1000);
+			while ((currentTemp = tempSensor.getTemperature()) < modelStep[0]) {
+				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
+				slope = (currentTemp - beginTemp) / (Duration.between(beginTime, Instant.now()).toMillis());
 				sleep(measureInterval);
 			}
 			//turn heater off
 			switchHeater(false);
 			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 1, new Point(elapsedTime().toMillis(), modelStep[0]));
-			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 2, new Point(elapsedTime().plus(modelStep[1], ChronoUnit.SECONDS).toMillis(), modelStep[0]));
+			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 2, new Point(elapsedTime().plus(modelStep[1], ChronoUnit.MINUTES).toMillis(), modelStep[0]));
 
-			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.SECONDS);
+			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.MINUTES);
 			while (Instant.now().isBefore(endTime)) {
-				double currentTemp = temperatureRun.getCurrentTemp();
+				currentTemp = tempSensor.getTemperature();
 				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
-				if (currentTemp < modelStep[0] - thresHold) {
+				if (currentTemp < modelStep[0] - threshold) {
 					//turn heater on
 					switchHeater(true);
-				} else if (currentTemp > modelStep[0] + thresHold) {
+				} else if (currentTemp > modelStep[0] + threshold) {
 					//turn heater off
 					switchHeater(false);
 				}
@@ -91,12 +99,14 @@ public class BrewProcess implements Runnable {
 	}
 
 	public List<Point> getTempLog(int fromPoint) {
-		for (int i = 0; i < tempLog.size(); i++) {
-			if (tempLog.get(i).getX() > fromPoint) {
-				return tempLog.subList(i , tempLog.size());
+		synchronized (tempLog) {
+			for (int i = 0; i < tempLog.size(); i++) {
+				if (tempLog.get(i).getX() > fromPoint) {
+					return tempLog.subList(i , tempLog.size());
+				}
 			}
+			return new ArrayList<>();
 		}
-		return new ArrayList<>();
 	}
 
 	public List<Point> getAppliedModel() {
@@ -126,10 +136,7 @@ public class BrewProcess implements Runnable {
 	}
 
 	public double getCurrentTemperature() {
-		if (null == temperatureRun) {
-			return 0;
-		}
-		return temperatureRun.getCurrentTemp();
+		return currentTemp;
 	}
 
 	public boolean isHeaterOn() {
@@ -137,7 +144,7 @@ public class BrewProcess implements Runnable {
 	}
 
 	public double getSlope() {
-		return slope;
+		return (double) Math.round(slope * 100)/100;
 	}
 
 	private void sleep(int milliseonds) {
@@ -150,12 +157,8 @@ public class BrewProcess implements Runnable {
 	}
 
 	private void switchHeater(boolean enable) {
-		temperatureRun.setHeaterOn(enable);
-		if (heaterSwitch.isLow() && enable) {
-			heaterSwitch.high();
-			addToSwitchLog(enable);
-		} else if (heaterSwitch.isHigh() && !enable) {
-			heaterSwitch.low();
+		if (heaterSwitch.isHigh() != enable) {
+			heaterSwitch.toggle();
 			addToSwitchLog(enable);
 		}
 	}
@@ -179,10 +182,10 @@ public class BrewProcess implements Runnable {
 		List<Point> appliedModelInit = new ArrayList<>();
 		appliedModelInit.add(new Point(x, startTemperature)); //assuming stortwater is 20 degrees
 		for (Integer[] step : maischModel) {
-			x += (long) ((step[0]-y)/slope) * 1000;
+			x += (long) ((step[0]-y)/slope) * 60 * 1000;
 			y = step[0];
 			appliedModelInit.add(new Point(x, y));
-			x += step[1] * 1000;
+			x += step[1] * 60 * 1000;
 			appliedModelInit.add(new Point(x, y));
 		}
 		return appliedModelInit;
