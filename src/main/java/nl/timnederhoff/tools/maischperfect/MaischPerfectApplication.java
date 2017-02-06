@@ -36,7 +36,7 @@ public class MaischPerfectApplication {
 		maischModel.add(new Integer[] {32,1});
 		maischModel.add(new Integer[] {35,2});
 		maischModel.add(new Integer[] {50,2});
-		brewProcess = new BrewProcess(maischModel, 4000, 1);
+		brewProcess = new BrewProcess(maischModel, 2000, 1);
 		SpringApplication.run(MaischPerfectApplication.class, args);
 	}
 
@@ -57,7 +57,7 @@ public class MaischPerfectApplication {
 
 	@Scheduled(fixedRate = 1500)
 	public void broadcastTemperature() {
-		this.brokerMessagingTemplate.convertAndSend("/topic/livedata", Double.toString(brewProcess.getCurrentTemperature()));
+		this.brokerMessagingTemplate.convertAndSend("/topic/livedata", Double.toString(Temperature.get().currentTemperature()));
 	}
 
 	@RequestMapping("/start")

@@ -1,9 +1,6 @@
 package nl.timnederhoff.tools.maischperfect;
 
-import com.pi4j.component.temperature.TemperatureSensor;
-import com.pi4j.component.temperature.impl.TmpDS18B20DeviceType;
 import com.pi4j.io.gpio.*;
-import com.pi4j.io.w1.W1Master;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.Label;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.PlotLine;
 import nl.timnederhoff.tools.maischperfect.model.highcharts.Point;
@@ -27,7 +24,6 @@ public class BrewProcess implements Runnable {
 	private double currentTemp;
 
 	private GpioPinDigitalOutput heaterSwitch;
-	private TemperatureSensor tempSensor;
 
 	public BrewProcess(List<Integer[]> maischModel, int measureInterval, double threshold) {
 		this.measureInterval = measureInterval;
@@ -39,10 +35,7 @@ public class BrewProcess implements Runnable {
 				"Heater Switch",           // PIN FRIENDLY NAME (optional)
 				PinState.LOW);      // PIN STARTUP STATE (optional)
 
-		W1Master master = new W1Master();
-		tempSensor = (TemperatureSensor) master.getDevices(TmpDS18B20DeviceType.FAMILY_CODE).get(0);
-
-		brewProcessThread = new Thread(this, "my runnable thread");
+		brewProcessThread = new Thread(this, "brew process thread");
 	}
 
 	@Override
@@ -52,16 +45,21 @@ public class BrewProcess implements Runnable {
 		switchLog = new ArrayList<>();
 		appliedModel = appliedModel(maischModel, 20, 1);
 		startDateTime = Instant.now();
-		currentTemp = 23.0;
+		currentTemp = Temperature.get().currentTemperature();
 		appliedModel.set(0, new Point(elapsedTime().toMillis(), currentTemp));
 		for (Integer[] modelStep : maischModel) {
 			//turn heater on
 			switchHeater(true);
 			double beginTemp = currentTemp;
 			Instant beginTime = Instant.now();
-			while ((currentTemp = tempSensor.getTemperature()) < modelStep[0]) {
+			while ((currentTemp = Temperature.get().currentTemperature()) < modelStep[0]) {
 				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
-				slope = (currentTemp - beginTemp) / (Duration.between(beginTime, Instant.now()).toMillis());
+				double tempDiff = currentTemp - beginTemp;
+				System.out.println("tempdiff " + tempDiff);
+				double timeDiff = Duration.between(beginTime, Instant.now()).toMillis()/60000;
+				System.out.println("timediff " + timeDiff);
+				slope = tempDiff / timeDiff;
+				System.out.println("slope: " + slope);
 				sleep(measureInterval);
 			}
 			//turn heater off
@@ -71,7 +69,7 @@ public class BrewProcess implements Runnable {
 
 			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.MINUTES);
 			while (Instant.now().isBefore(endTime)) {
-				currentTemp = tempSensor.getTemperature();
+				currentTemp = Temperature.get().currentTemperature();
 				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
 				if (currentTemp < modelStep[0] - threshold) {
 					//turn heater on
@@ -144,7 +142,7 @@ public class BrewProcess implements Runnable {
 	}
 
 	public double getSlope() {
-		return (double) Math.round(slope * 100)/100;
+		return (double) Math.round(slope * 100)/100d;
 	}
 
 	private void sleep(int milliseonds) {

@@ -12,10 +12,6 @@ public class BrewProcessStatus {
 	private List<PlotLine> heaterlog;
 	private boolean isEnded;
 	private double slope;
-	private double temperatureVariance;
-
-	public BrewProcessStatus() {
-	}
 
 	public BrewProcessStatus(List<Point> templog, List<Point> appliedModel, List<PlotLine> heaterlog, boolean isEnded, double slope) {
 		this.templog = templog;

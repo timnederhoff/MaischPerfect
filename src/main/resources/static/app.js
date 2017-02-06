@@ -11,7 +11,7 @@ function connect() {
     stompClient.connect({}, function (frame) {
         console.log('Connected: ' + frame);
         var liveDataSubscription = stompClient.subscribe('/topic/livedata', function (currentTemp) {
-            tempchart.series[0].points[0].update(parseInt(currentTemp.body));
+            tempchart.series[0].points[0].update(parseFloat(currentTemp.body));
         });
         var processSubscription = stompClient.subscribe('/topic/temps', function (temps) {
             var templogs = JSON.parse(temps.body).templog;
@@ -209,9 +209,12 @@ $(function () {
 
         series: [{
             name: 'temperature',
-            data: [0],
+            data: [0.0],
             tooltip: {
                 valueSuffix: ' °C'
+            },
+            dataLabels: {
+                format: "{y:.1f}"
             }
         }]
     });
