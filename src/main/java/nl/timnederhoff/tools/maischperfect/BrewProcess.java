@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BrewProcess implements Runnable {
+	private volatile boolean exit = false;
 	private List<Integer[]> maischModel;
 	private List<Point> appliedModel;
 	private double threshold;
@@ -22,6 +23,7 @@ public class BrewProcess implements Runnable {
 	private int measureInterval;
 	private double slope;
 	private double currentTemp;
+	private GpioController gpio;
 
 	private GpioPinDigitalOutput heaterSwitch;
 
@@ -29,10 +31,10 @@ public class BrewProcess implements Runnable {
 		this.measureInterval = measureInterval;
 		this.maischModel = maischModel;
 		this.threshold = threshold;
-		GpioController gpio = GpioFactory.getInstance();
-
+		gpio = GpioFactory.getInstance();
+		gpio.getProvisionedPin(RaspiPin.GPIO_25);
 		heaterSwitch = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_25,   // PIN NUMBER
-				"Heater Switch",           // PIN FRIENDLY NAME (optional)
+				"Heater Switch",    // PIN FRIENDLY NAME (optional)
 				PinState.LOW);      // PIN STARTUP STATE (optional)
 
 		brewProcessThread = new Thread(this, "brew process thread");
@@ -40,52 +42,57 @@ public class BrewProcess implements Runnable {
 
 	@Override
 	public void run() {
-		System.out.println("Process started...");
-		tempLog = new ArrayList<>();
-		switchLog = new ArrayList<>();
-		appliedModel = appliedModel(maischModel, 20, 1);
-		startDateTime = Instant.now();
-		currentTemp = Temperature.get().currentTemperature();
-		appliedModel.set(0, new Point(elapsedTime().toMillis(), currentTemp));
-		for (Integer[] modelStep : maischModel) {
-			//turn heater on
-			switchHeater(true);
-			double beginTemp = currentTemp;
-			Instant beginTime = Instant.now();
-			while ((currentTemp = Temperature.get().currentTemperature()) < modelStep[0]) {
-				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
-				double tempDiff = currentTemp - beginTemp;
-				System.out.println("tempdiff " + tempDiff);
-				double timeDiff = Duration.between(beginTime, Instant.now()).toMillis()/60000;
-				System.out.println("timediff " + timeDiff);
-				slope = tempDiff / timeDiff;
-				System.out.println("slope: " + slope);
-				sleep(measureInterval);
-			}
-			//turn heater off
-			switchHeater(false);
-			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 1, new Point(elapsedTime().toMillis(), modelStep[0]));
-			appliedModel.set((maischModel.indexOf(modelStep) * 2) + 2, new Point(elapsedTime().plus(modelStep[1], ChronoUnit.MINUTES).toMillis(), modelStep[0]));
-
-			Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.MINUTES);
-			while (Instant.now().isBefore(endTime)) {
-				currentTemp = Temperature.get().currentTemperature();
-				tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
-				if (currentTemp < modelStep[0] - threshold) {
-					//turn heater on
-					switchHeater(true);
-				} else if (currentTemp > modelStep[0] + threshold) {
-					//turn heater off
-					switchHeater(false);
+		try {
+			System.out.println("Process started...");
+			tempLog = new ArrayList<>();
+			switchLog = new ArrayList<>();
+			appliedModel = appliedModel(maischModel, 20, 1);
+			startDateTime = Instant.now();
+			currentTemp = Temperature.get().currentTemperature();
+			appliedModel.set(0, new Point(elapsedTime().toMillis(), currentTemp));
+			for (Integer[] modelStep : maischModel) {
+				//turn heater on
+				switchHeater(true);
+				double beginTemp = currentTemp;
+				Instant beginTime = Instant.now();
+				while ((currentTemp = Temperature.get().currentTemperature()) < modelStep[0]) {
+					tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
+					double tempDiff = currentTemp - beginTemp;
+					double timeDiff = Duration.between(beginTime, Instant.now()).toMillis() / 60000;
+					slope = tempDiff / timeDiff;
+					sleep(measureInterval);
 				}
-				sleep(measureInterval);
+				//turn heater off
+				switchHeater(false);
+				appliedModel.set((maischModel.indexOf(modelStep) * 2) + 1, new Point(elapsedTime().toMillis(), modelStep[0]));
+				appliedModel.set((maischModel.indexOf(modelStep) * 2) + 2, new Point(elapsedTime().plus(modelStep[1], ChronoUnit.MINUTES).toMillis(), modelStep[0]));
+
+				Instant endTime = startDateTime.plus(elapsedTime()).plus(modelStep[1], ChronoUnit.MINUTES);
+				while (Instant.now().isBefore(endTime)) {
+					currentTemp = Temperature.get().currentTemperature();
+					tempLog.add(new Point(elapsedTime().toMillis(), currentTemp));
+					if (currentTemp < modelStep[0] - threshold) {
+						//turn heater on
+						switchHeater(true);
+					} else if (currentTemp > modelStep[0] + threshold) {
+						//turn heater off
+						switchHeater(false);
+					}
+					sleep(measureInterval);
+				}
 			}
+			switchHeater(false);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
-		switchHeater(false);
 	}
 
 	public void start() {
 		brewProcessThread.start();
+	}
+
+	public void stop() {
+		exit = true;
 	}
 
 	public boolean isEnded() {
@@ -145,11 +152,15 @@ public class BrewProcess implements Runnable {
 		return (double) Math.round(slope * 100)/100d;
 	}
 
-	private void sleep(int milliseonds) {
+	private void sleep(int milliseonds) throws InterruptedException{
+		if (exit) {
+			gpio.shutdown();
+			throw new InterruptedException("Exit process exception");
+		}
 		try {
 			Thread.sleep(milliseonds);
 		} catch (InterruptedException e) {
-			System.out.println("Something went wrong while sleeping...");
+			System.out.println("Something went wrong while sleeping thread...");
 			e.printStackTrace();
 		}
 	}

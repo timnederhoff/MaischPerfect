@@ -66,6 +66,12 @@ function startProcess() {
     });
 }
 
+function stopProcess() {
+    $.get( "stop", function( data ) {
+        console.log("brew prcess stopped");
+    });
+}
+
 $(function () {
     $("form").on('submit', function (e) {
         e.preventDefault();
@@ -74,6 +80,10 @@ $(function () {
         startProcess();
         requestData();
     })
+    $( "#stop" ).click(function () {
+        stopProcess();
+    })
+
 });
 
 
