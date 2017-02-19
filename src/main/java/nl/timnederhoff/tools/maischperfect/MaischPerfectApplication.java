@@ -1,9 +1,11 @@
 package nl.timnederhoff.tools.maischperfect;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatus;
 import nl.timnederhoff.tools.maischperfect.model.BrewProcessStatusRequest;
+import nl.timnederhoff.tools.maischperfect.model.MaischPerfectRepo;
 import nl.timnederhoff.tools.maischperfect.model.Recipe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -19,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +35,16 @@ public class MaischPerfectApplication {
 
 	private static BrewProcess brewProcess;
 
+	private static final Logger log = LoggerFactory.getLogger(MaischPerfectApplication.class);
+
 	@Value("${baseDir}")
 	String baseDir;
 
 	@Autowired
 	private SimpMessagingTemplate brokerMessagingTemplate;
+
+	@Autowired
+	private MaischPerfectRepo repository;
 
 	public static void main(String[] args) {
 		SpringApplication.run(MaischPerfectApplication.class, args);
@@ -84,17 +90,13 @@ public class MaischPerfectApplication {
 	}
 
 	@RequestMapping("/recipe")
-	public Recipe getRecipe() {
-		return new Recipe(
-				"Witbier met koreander",
-				"Recept volgens Wil van den Broek"
-		);
+	public Iterable<Recipe> getRecipe() {
+		return repository.findAll();
 	}
 
 	@RequestMapping(value = "/recipe", method = RequestMethod.POST)
-	public void writeRecipeToFile(@RequestBody Recipe recipe) throws IOException {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.writeValue(new File(baseDir + "/testrecipe.json"), recipe);
+	public void writeRecipeToRepo(@RequestBody Recipe recipe) throws IOException {
+		repository.save(recipe);
 	}
 
 }
